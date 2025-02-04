@@ -1,5 +1,24 @@
 import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
+import { fileValidation } from "../utils/fileValidation.js";
+import S3Service from "../services/imageService.service.js";
+
+const transformImageUrl = (url) => {
+  const queryParams = url.split("?")[1];
+  const extMatch = queryParams ? queryParams.match(/(?:^|&)ext=([^&]*)/) : null;
+  const ext = extMatch ? extMatch[1] : null;
+  const urlWithoutQuery = url.split("?")[0];
+  const transformedUrl = urlWithoutQuery.replace(/\.[^/.]+$/, `.${ext}`);
+
+  return transformedUrl;
+};
+
+const extractFilename = (url) => {
+  // Use a regular expression to match the filename
+  const regex = /[^/]+$/;
+  const match = url.match(regex);
+  return match ? match[0] : null;
+};
 
 export const registerUser = async (req, res) => {
   const {
@@ -129,7 +148,6 @@ export const getUserProfile = async (req, res) => {
 
 export const updateUserProfile = async (req, res) => {
   const { fullName, email, phoneNumber, bio, skills, gender } = req.body;
-  const file = req.file;
   const userId = req.user?.id;
 
   if (!userId) {
@@ -149,10 +167,6 @@ export const updateUserProfile = async (req, res) => {
     if (bio) existingUser.profile.bio = bio;
     if (gender) {
       existingUser.gender = gender;
-      existingUser.profile.profilePhoto =
-        gender === "male"
-          ? "https://api.dicebear.com/9.x/adventurer/svg?seed=Aneka"
-          : "https://api.dicebear.com/9.x/adventurer/svg?seed=Felix";
     }
     if (skills) {
       if (Array.isArray(skills)) {
@@ -166,9 +180,55 @@ export const updateUserProfile = async (req, res) => {
       }
     }
 
-    if (file) {
-      // TODO: Upload file to AWS S3 and update profile.photo URL
-      // existingUser.profile.profilePhoto = uploadedFileUrl;
+    // Update profile photo if provided
+    if (req.files && req.files?.avatar) {
+      fileValidation(req);
+      try {
+        if (existingUser.profile.profilePhoto) {
+          const filename = extractFilename(existingUser.profile.profilePhoto);
+          const isDeleted = await S3Service.deleteImageFromS3(filename);
+          if (!isDeleted) {
+            return res
+              .status(500)
+              .json({ message: "Failed to delete old image" });
+          }
+        }
+
+        let imageUrl = await S3Service.uploadToS3(req.files.avatar[0]);
+        if (!imageUrl)
+          return res.status(500).json({ message: "Upload failed" });
+
+        imageUrl = transformImageUrl(imageUrl);
+        existingUser.profile.profilePhoto = imageUrl;
+      } catch (error) {
+        console.error(error.message);
+        return res.status(500).json({ message: "Error uploading to S3" });
+      }
+    }
+
+    if (req.files && req.files?.resume) {
+
+      try {
+        if (existingUser.profile.resume) {
+          const filename = extractFilename(existingUser.profile.resume);
+          const isDeleted = await S3Service.deleteResuneFromS3(filename);
+          if (!isDeleted) {
+            return res
+              .status(500)
+              .json({ message: "Failed to delete old Resume" });
+          }
+        }
+
+        let resumeUrl = await S3Service.uploadResumeS3(req.files.resume[0]);
+        if (!resumeUrl)
+          return res.status(500).json({ message: "Upload failed" });
+
+        // resumeUrl = transformImageUrl(resumeUrl);
+        existingUser.profile.resume = resumeUrl;
+      } catch (error) {
+        console.error(error.message);
+        return res.status(500).json({ message: "Error uploading to S3" });
+      }
     }
 
     await existingUser.save();

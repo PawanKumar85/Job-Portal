@@ -116,8 +116,6 @@ export const getAllApplications = async (req, res) => {
     // Extract job IDs from the jobs found
     const jobIds = jobs.map((job) => job._id);
 
-    console.log(jobIds);
-
     const applications = await Application.find({ job: { $in: jobIds } })
       .populate({
         path: "job",

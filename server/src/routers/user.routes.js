@@ -9,6 +9,7 @@ import {
   deleteUserById,
   getAllUsersAdmin,
 } from "../controllers/user.controller.js";
+import { upload } from "../middlewares/multerConfig.js";
 import { authenticateToken } from "../middlewares/auth.middleware.js";
 
 const userRouter = Router();
@@ -18,7 +19,15 @@ userRouter.post("/login", loginUser); // ✅ ⚡
 userRouter.post("/logout", authenticateToken, logoutUser); // ✅ ⚡
 
 userRouter.get("/profile", authenticateToken, getUserProfile); // ✅ ⚡
-userRouter.patch("/profile/update", authenticateToken, updateUserProfile); // ✅ ⚡
+userRouter.patch(
+  "/profile/update",
+  authenticateToken,
+  upload.fields([
+    { name: "avatar", maxCount: 1 }, // Profile image
+    { name: "resume", maxCount: 1 }, // Resume file
+  ]),
+  updateUserProfile
+); // ✅ ⚡
 userRouter.get("/users", authenticateToken, getAllUsers); // ✅  ⚡
 userRouter.delete("/users/:id", authenticateToken, deleteUserById); // ✅ ⚡
 
