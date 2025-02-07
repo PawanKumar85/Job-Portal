@@ -26,7 +26,8 @@ function getFormattedLocalTime(req) {
 
 const addQuery = (req) => {
   const fileData = fileParamsConfig[req.files?.avatar[0].fieldname];
-  req.files.avatar[0].originalname = `${req.files?.avatar[0].fieldname}?ext=${fileData.ext}&size=${fileData.size}&filesize=${fileData.filesize}`;
+  req.files.avatar[0].originalname = `${req.files?.avatar[0].originalname}?ext=${fileData.ext}&size=${fileData.size}&filesize=${fileData.filesize}`;
+  console.log(req.files.avatar[0].originalname)
   return;
 };
 
