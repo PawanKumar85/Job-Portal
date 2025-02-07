@@ -5,7 +5,6 @@ import {
 } from "@aws-sdk/client-s3";
 import { s3, BUCKET_NAME, REGION } from "../config/s3Config.js";
 
-
 class S3Service {
   constructor() {
     this.bucketName = BUCKET_NAME;
@@ -50,7 +49,6 @@ class S3Service {
 
   // Delete image from S3 (Optimize-images folder)
   async deleteImageFromS3(fileName) {
-    
     try {
       const deleteParams = {
         Bucket: this.bucketName,
@@ -58,7 +56,7 @@ class S3Service {
       };
 
       await s3.send(new DeleteObjectCommand(deleteParams));
-      console.log(`Deleted file: Optimize-images/${fileName}`);
+      console.warn(`Deleted file: Optimize-images/${fileName}`);
       return true;
     } catch (error) {
       console.error("Error deleting file:", error);
@@ -105,7 +103,6 @@ class S3Service {
   }
 
   async deleteResuneFromS3(fileName) {
-    
     try {
       const deleteParams = {
         Bucket: this.bucketName,
@@ -113,7 +110,7 @@ class S3Service {
       };
 
       await s3.send(new DeleteObjectCommand(deleteParams));
-      console.log(`Deleted file: Resume/${fileName}`);
+      console.warn(`Deleted file: Resume/${fileName}`);
       return true;
     } catch (error) {
       console.error("Error deleting file:", error);

@@ -188,7 +188,7 @@ export const getMyJobById = async (req, res) => {
 
     return res.status(200).json({ message: "Job retrieved successfully", job });
   } catch (error) {
-    console.log(error.message);
+    console.error(error.message);
     return res.status(500).json({ message: "Server Error" });
   }
 };

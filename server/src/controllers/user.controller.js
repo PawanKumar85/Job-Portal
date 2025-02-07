@@ -2,23 +2,8 @@ import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import { fileValidation } from "../utils/fileValidation.js";
 import S3Service from "../services/imageService.service.js";
-
-const transformImageUrl = (url) => {
-  const queryParams = url.split("?")[1];
-  const extMatch = queryParams ? queryParams.match(/(?:^|&)ext=([^&]*)/) : null;
-  const ext = extMatch ? extMatch[1] : null;
-  const urlWithoutQuery = url.split("?")[0];
-  const transformedUrl = urlWithoutQuery.replace(/\.[^/.]+$/, `.${ext}`);
-
-  return transformedUrl;
-};
-
-const extractFilename = (url) => {
-  // Use a regular expression to match the filename
-  const regex = /[^/]+$/;
-  const match = url.match(regex);
-  return match ? match[0] : null;
-};
+import { extractFilename } from "../utils/extractFilename.js";
+import { transformImageUrl } from "../utils/transformImageUrl.js";
 
 export const registerUser = async (req, res) => {
   const {
@@ -114,7 +99,7 @@ export const loginUser = async (req, res) => {
       token: token,
     });
   } catch (error) {
-    console.log(error.message);
+    console.error(error.message);
     return res.status(500).json({ message: "Server Error" });
   }
 };
@@ -141,7 +126,7 @@ export const getUserProfile = async (req, res) => {
     }
     return res.status(200).json({ user });
   } catch (error) {
-    console.log(error.message);
+    console.error(error.message);
     return res.status(500).json({ message: "Server Error" });
   }
 };
@@ -181,7 +166,7 @@ export const updateUserProfile = async (req, res) => {
     }
 
     // Update profile photo if provided
-    if (req.files && req.files?.avatar) {
+    if (req.files?.avatar) {
       fileValidation(req);
       try {
         if (existingUser.profile.profilePhoto) {
@@ -206,8 +191,8 @@ export const updateUserProfile = async (req, res) => {
       }
     }
 
-    if (req.files && req.files?.resume) {
-
+    if (req.role === "student" && req.files?.resume) {
+      fileValidation(req);
       try {
         if (existingUser.profile.resume) {
           const filename = extractFilename(existingUser.profile.resume);
@@ -258,7 +243,7 @@ export const getAllUsers = async (req, res) => {
       users,
     });
   } catch (error) {
-    console.log(error.message);
+    console.error(error.message);
     return res.status(500).json({ message: "Server Error" });
   }
 };
@@ -290,7 +275,7 @@ export const deleteUserById = async (req, res) => {
 
     return res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
-    console.log(error.message);
+    console.error(error.message);
     return res.status(500).json({ message: "Server Error" });
   }
 };

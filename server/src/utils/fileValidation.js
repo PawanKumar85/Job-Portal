@@ -8,46 +8,42 @@ const fileParamsConfig = {
   linkedIn: { ext: "jpeg", size: "1584x396", filesize: "1MB" },
 };
 
-function getFormattedLocalTime(req) {
+function getFormattedLocalTime(file) {
   const localTime = new Date();
 
   const year = localTime.getFullYear();
-  const month = String(localTime.getMonth() + 1).padStart(2, "0"); // Months are zero-based, so we add 1
+  const month = String(localTime.getMonth() + 1).padStart(2, "0");
   const day = String(localTime.getDate()).padStart(2, "0");
-
   const hours = String(localTime.getHours()).padStart(2, "0");
   const minutes = String(localTime.getMinutes()).padStart(2, "0");
   const seconds = String(localTime.getSeconds()).padStart(2, "0");
 
-  // Format the time without spaces
-  const data = `${year}-${month}-${day}-${hours}${minutes}${seconds}-${req.files?.avatar[0].fieldname}`;
-  return data;
+  return `${year}-${month}-${day}-${hours}${minutes}${seconds}-${file.fieldname}`;
 }
 
-const addQuery = (req) => {
-  const fileData = fileParamsConfig[req.files?.avatar[0].fieldname];
-  req.files.avatar[0].originalname = `${req.files?.avatar[0].originalname}?ext=${fileData.ext}&size=${fileData.size}&filesize=${fileData.filesize}`;
-  console.log(req.files.avatar[0].originalname)
-  return;
+const addQuery = (file) => {
+  const fileData = fileParamsConfig[file.fieldname] || {};
+  file.originalname = `${file.originalname}?ext=${fileData.ext || ""}&size=${
+    fileData.size || ""
+  }&filesize=${fileData.filesize || ""}`;
 };
 
-export const fileValidation = (req) => {
-  const maxSize = 10 * 1024 * 1024; // 10 MB
+export const fileValidation = (req, res) => {
+  const maxSize = 10 * 1024 * 1024; // 10MB
 
-  // Check file size
-  if (req.files.avatar[0] > maxSize) {
-    return res.status(400).json({ message: "File size exceeds 10MB" });
-  }
+  const files = req.files || {};
+  Object.values(files)
+    .flat()
+    .forEach((file) => {
+      if (file.size > maxSize) {
+        return res.status(400).json({ message: "File size exceeds 10MB" });
+      }
 
-  // Extract file extension
-  const extname = req.files.avatar[0].originalname
-    .split(".")
-    .pop()
-    .toLowerCase();
-
-  // Rename the file with the formatted local time and keep the extension
-  const newFileName = `${getFormattedLocalTime(req)}.${extname}`;
-  req.files.avatar[0].originalname = newFileName;
-  addQuery(req);
-  return;
+      const extname = file.originalname.split(".").pop().toLowerCase();
+      const newFileName = `${getFormattedLocalTime(file)}.${extname}`;
+      file.originalname = newFileName;
+      if (!["pdf", "doc", "docx"].includes(extname)) {
+        addQuery(file);
+      }
+    });
 };
